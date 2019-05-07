@@ -1,0 +1,130 @@
+{
+  "models": [
+    "Decision Tree",
+    "Logistic Regression",
+    "Linear Regression",
+    "Naive Bayes",
+    "Random Forests",
+    "Gradient Boosted Trees",
+    "K-Means",
+    "Bisecting K-Means"
+  ],
+  "hyper_params": {
+    "Logistic Regression": [
+      {
+        "name": "elasticNetParam",
+        "defaultValue": "0.0"
+      },
+      {
+        "name": "maxIter",
+        "defaultValue": "100"
+      },
+      {
+        "name": "regParam",
+        "defaultValue": "0.0"
+      },
+      {
+        "name": "tol",
+        "defaultValue": "0.0001"
+      }
+    ],
+    "Linear Regression": [
+      {
+        "name": "elasticNetParam",
+        "defaultValue": "0.0"
+      },
+      {
+        "name": "maxIter",
+        "defaultValue": "25"
+      },
+      {
+        "name": "tol",
+        "defaultValue":"0.00001"
+      }
+    ],
+    "Decision Tree": [
+      {
+        "name": "maxBins",
+        "defaultValue": "32"
+      },
+      {
+        "name": "maxDepth",
+        "defaultValue": "1"
+      },
+      {
+        "name": "minInfoGain",
+        "defaultValue": "0.0"
+      },
+      {
+        "name": "minInstancesperNode",
+        "defaultValue": "2"
+      }
+    ],
+    "Naive Bayes": [
+      {
+        "name": "smoothing",
+        "defaultValue": "0.000000001"
+      }
+    ],
+    "Random Forests": [
+      {
+        "name": "maxBins",
+        "defaultValue": "32"
+      },
+      {
+        "name": "maxDepth",
+        "defaultValue": "1"
+      },
+      {
+        "name": "minInfoGain",
+        "defaultValue": "0.0"
+      },
+      {
+        "name": "numTrees",
+        "defaultValue": "10"
+      }
+    ],
+    "Gradient Boosted Trees": [
+      {
+        "name": "maxBins",
+        "defaultValue": "20"
+      },
+      {
+        "name": "maxDepth",
+        "defaultValue": "3"
+      },
+      {
+        "name": "maxIter",
+        "defaultValue": "100"
+      },
+      {
+        "name": "stepSize",
+        "defaultValue": "1"
+      },
+      {
+        "name": "subSamplingRate",
+        "defaultValue": "1"
+      }
+    ],
+    "K-Means": [
+      {
+        "name": "K",
+        "defaultValue": "2"
+      }
+    ],
+    "Bisecting K-Means": [
+      {
+        "name": "K",
+        "defaultValue": "2"
+      },
+      {
+        "name": "maxIterations",
+        "defaultValue": "10"
+      },
+      {
+        "name": "minDivisibleClusterSize",
+        "defaultValue": "10"
+      }
+    ]
+  }
+}
