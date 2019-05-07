@@ -28,7 +28,7 @@ class CreateExperimentModal extends Component{
         };
         API.createDF(expData).then((data) => {
             if (data !== 400) {
-                console.log(data);
+                // console.log(data);
                 this.setState({loader: false}, () => {
                     this.props.onHide();
                 });

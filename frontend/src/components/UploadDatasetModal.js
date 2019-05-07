@@ -1,19 +1,25 @@
 import React, {Component} from 'react';
 import {Modal, Form} from 'react-bootstrap';
+import {Loader} from "./Loader";
+import * as API from "../api/API";
 
 class UploadDatasetModal extends Component {
     constructor(props) {
         super(props);
         this.state = {
             validated: false,
-            isHeaderPresent : null
+            isHeaderPresent : null,
+            loader: false,
+            fileData: ""
         };
 
         this.handleSubmit = this.handleSubmit.bind(this);
     }
 
+
     handleSubmit(event) {
         event.preventDefault();
+        this.setState({loader: true});
         const form = event.currentTarget;
         let file = form.elements.formBasicFile.files[0];
         let name = form.elements.formBasicName.value;
@@ -58,6 +64,9 @@ class UploadDatasetModal extends Component {
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body className={"no-pad"}>
+                    {this.state.loader ?
+                        <Loader/> : null
+                    }
                     <Form className={"form-pad"} onSubmit={(e) => this.handleSubmit(e)}>
                         <Form.Group controlId={"formBasicFile"}>
                             <Form.Label>Select the dataset to upload: <span className={"required"}>*</span></Form.Label>
