@@ -854,6 +854,8 @@ public class ApiController {
 
 	@RequestMapping(value="update-missing")
 	public ResponseEntity<JSONObject> updateMissingValues(@RequestBody MissingData missingData){
+		
+		System.out.println("missingData "+missingData);
 
 		if (!missingData.getOldColumnName().equals(missingData.getNewColumnName())) {
 			System.out.println("Updating column $$$$$$$$");
