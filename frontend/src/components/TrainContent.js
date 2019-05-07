@@ -57,6 +57,7 @@ class TrainContent extends Component {
     componentDidMount() {
         API.getFrame(this.state.expId).then((data) => {
             if (data !== 400) {
+                // console.log(data.header);
                 this.setState({
                     headers: data.header,
                     prevHeaders: data.header,
@@ -102,9 +103,12 @@ class TrainContent extends Component {
     filterModels(e) {
         let objArray = [{value: "All", label: "All"}];
 
-        this.state.prevHeaders.map((value) => {
-           objArray.push({value: value.header, label: value.header});
-        });
+        if (this.state.prevHeaders) {
+            this.state.prevHeaders.map((value) => {
+                objArray.push({value: value.header, label: value.header});
+            });
+        }
+
         this.setState({group: e.target.value, otherOptions: objArray, filterModels: null});
     }
 
@@ -265,20 +269,23 @@ class TrainContent extends Component {
 
                         for (let key in model_keys) {
                             if (model_keys[key] === "logistic_regression") {
-                                roc_data = model_keys[key]["roc_data"];
-                                roc_data = {
-                                    chart: {
-                                        caption: "ROC Curve",
-                                        yaxisname: "TPR",
-                                        xaxisname: "FPR",
-                                        legendposition: "Right",
-                                        drawanchors: "0",
-                                        showvalues: "0",
-                                        plottooltext: "<b>$dataValue</b>",
-                                        theme: "fusion"
-                                    },
-                                    data: data[model_keys[key]]["roc_data"]["docs"]
-                                };
+                                if (Object.keys(data[model_keys[key]]).includes("roc_data")) {
+                                    roc_data = model_keys[key]["roc_data"];
+                                    roc_data = {
+                                        chart: {
+                                            caption: "ROC Curve",
+                                            yaxisname: "TPR",
+                                            xaxisname: "FPR",
+                                            legendposition: "Right",
+                                            drawanchors: "0",
+                                            showvalues: "0",
+                                            plottooltext: "<b>$dataValue</b>",
+                                            theme: "fusion"
+                                        },
+                                        data: data[model_keys[key]]["roc_data"]["docs"]
+                                    };
+                                }
+
                             }
 
                             if (this.state.group === "Regression") {
