@@ -604,7 +604,12 @@ public class ApiController {
 		}
 		
 		List<String> assemblerInputs = new ArrayList<>(numerical);
+		System.out.println("NUMERICAL");
+		for(String str: numerical)
+			System.out.println(str);
+		System.out.println("CATEGORICAL");
 		for(String str: newCat) {
+			System.out.println(str);
 			assemblerInputs.add(str);
 		}
 		VectorAssembler assembler = new VectorAssembler().setInputCols(assemblerInputs.toArray(new String[0])).setOutputCol("features");
@@ -625,15 +630,10 @@ public class ApiController {
 		training = ds[0];
 		testing = ds[1];
 
+		System.out.println("********************* PREPPED DATA DF *******************************");
 		preppedDataDF.show();
 		return f_df;
 
-		
-		
-		
-		
-		
-		
 	}
 
 
@@ -746,6 +746,15 @@ public class ApiController {
 		training = ds[0];
 		testing = ds[1];
 
+		System.out.println("NUMERICAL");
+		for(String str: numerical)
+			System.out.println(str);
+		System.out.println("CATEGORICAL");
+		for(String str: newCat)
+			System.out.println(str);
+		
+		System.out.println("********************* PREPPED DATA DF *******************************");
+
 		preppedDataDF.show();
 		return f_df;
 	}
@@ -809,7 +818,7 @@ public class ApiController {
 		List<String> numerical = new ArrayList<>();
 		for(Tuple2<String, String> tup: f_df.dtypes())
 		{
-			if(tup._1 == "label" || tup._1 == modelSelection.getOutputCol()) {
+			if(tup._1.equals("label") || tup._1.equals(modelSelection.getOutputCol())) {
 				continue;
 			}
 			if(tup._2 == "StringType")
@@ -1013,13 +1022,19 @@ public class ApiController {
 				IndexToString trs = new IndexToString().setLabels(temp.labels()).setInputCol("prediction").setOutputCol("prediction-original");
 				predictions = trs.transform(predictions);
 
-				MulticlassMetrics metrics = new MulticlassMetrics(predictions.select("prediction", "label"));
-				double[] cm = metrics.confusionMatrix().toArray();
-				double sum = cm[0] + cm[1] + cm[2] + cm[3];
-				double acc=(cm[0]+cm[3])/sum;
-				double precision=(cm[0])/(cm[0]+cm[1]);
-				double recall=(cm[0])/(cm[0]+cm[2]);
-				double fMeasure = (2*(precision*recall))/(precision+recall);
+//				MulticlassMetrics metrics = new MulticlassMetrics(predictions.select("prediction", "label"));
+//				double[] cm = metrics.confusionMatrix().toArray();
+//				double sum = cm[0] + cm[1] + cm[2] + cm[3];
+//				double acc=(cm[0]+cm[3])/sum;
+//				double precision=(cm[0])/(cm[0]+cm[1]);
+//				double recall=(cm[0])/(cm[0]+cm[2]);
+//				double fMeasure = (2*(precision*recall))/(precision+recall);
+
+				MulticlassClassificationEvaluator mce = new MulticlassClassificationEvaluator();
+				double acc=mce.setMetricName("accuracy").evaluate(predictions);
+				double precision=mce.setMetricName("weightedPrecision").evaluate(predictions);
+				double recall=mce.setMetricName("weightedRecall").evaluate(predictions);
+				double fMeasure =mce.setMetricName("f1").evaluate(predictions);
 
 
 				Dataset<Row> p_orginal = predictions.select("prediction-original").limit(limit);
@@ -1036,7 +1051,7 @@ public class ApiController {
 
 
 
-				if (model.get("hyper_params") ==null) {
+				if (model.get("hyper_params") ==null && currentDf.select(outputCol).distinct().count() <= 2) {
 					BinaryLogisticRegressionSummary bsummary = (BinaryLogisticRegressionSummary)lrModel.summary();
 					bsummary.roc().show();
 					System.out.println(bsummary.areaUnderROC());
@@ -1118,14 +1133,19 @@ public class ApiController {
 				System.out.println("-----<>-----"+model.get("model"));
 				predictions.show();
 
-				MulticlassMetrics metrics = new MulticlassMetrics(predictions.select("prediction", "label"));
-				double[] cm = metrics.confusionMatrix().toArray();
-				double sum = cm[0] + cm[1] + cm[2] + cm[3];
-				double acc=(cm[0]+cm[3])/sum;
-				double precision=(cm[0])/(cm[0]+cm[1]);
-				double recall=(cm[0])/(cm[0]+cm[2]);
-				double fMeasure = (2*(precision*recall))/(precision+recall);
+//				MulticlassMetrics metrics = new MulticlassMetrics(predictions.select("prediction", "label"));
+//				double[] cm = metrics.confusionMatrix().toArray();
+//				double sum = cm[0] + cm[1] + cm[2] + cm[3];
+//				double acc=(cm[0]+cm[3])/sum;
+//				double precision=(cm[0])/(cm[0]+cm[1]);
+//				double recall=(cm[0])/(cm[0]+cm[2]);
+//				double fMeasure = (2*(precision*recall))/(precision+recall);
 
+				MulticlassClassificationEvaluator mce = new MulticlassClassificationEvaluator();
+				double acc=mce.setMetricName("accuracy").evaluate(predictions);
+				double precision=mce.setMetricName("weightedPrecision").evaluate(predictions);
+				double recall=mce.setMetricName("weightedRecall").evaluate(predictions);
+				double fMeasure =mce.setMetricName("f1").evaluate(predictions);
 
 				Dataset<Row> p_orginal = predictions.select("prediction-original").limit(limit);
 				JSONObject p_original_json = Utils.convertFrameToJson2Single(p_orginal.collectAsList());
@@ -1205,15 +1225,24 @@ public class ApiController {
 				System.out.println("-----<>-----"+model.get("model"));
 				predictions.show();
 
-				MulticlassMetrics metrics = new MulticlassMetrics(predictions.select("prediction", "label"));
-				double[] cm = metrics.confusionMatrix().toArray();
-				double sum = cm[0] + cm[1] + cm[2] + cm[3];
-				double acc=(cm[0]+cm[3])/sum;
-				double precision=(cm[0])/(cm[0]+cm[1]);
-				double recall=(cm[0])/(cm[0]+cm[2]);
-				double fMeasure = (2*(precision*recall))/(precision+recall);
+//				MulticlassMetrics metrics = new MulticlassMetrics(predictions.select("prediction", "label"));
+//				double[] cm = metrics.confusionMatrix().toArray();
+//				double sum = cm[0] + cm[1] + cm[2] + cm[3];
+//				double acc=(cm[0]+cm[3])/sum;
+//				double precision=(cm[0])/(cm[0]+cm[1]);
+//				double recall=(cm[0])/(cm[0]+cm[2]);
+//				double fMeasure = (2*(precision*recall))/(precision+recall);
 
+		     	MulticlassClassificationEvaluator mce = new MulticlassClassificationEvaluator();
+				double acc=mce.setMetricName("accuracy").evaluate(predictions);
+				double precision=mce.setMetricName("weightedPrecision").evaluate(predictions);
+				double recall=mce.setMetricName("weightedRecall").evaluate(predictions);
+				double fMeasure =mce.setMetricName("f1").evaluate(predictions);
 
+				System.out.println("accuarcy = " + acc);
+				System.out.println("weightedPrecision = " + precision);
+				System.out.println("weightedRecall = " + recall);
+				System.out.println("f1 = " + fMeasure);
 				Dataset<Row> p_orginal = predictions.select("prediction-original").limit(limit);
 				JSONObject p_original_json = Utils.convertFrameToJson2Single(p_orginal.collectAsList());
 
@@ -1296,13 +1325,19 @@ public class ApiController {
 				System.out.println("-----<>-----"+model.get("model"));
 				predictions.show();
 
-				MulticlassMetrics metrics = new MulticlassMetrics(predictions.select("prediction", "label"));
-				double[] cm = metrics.confusionMatrix().toArray();
-				double sum = cm[0] + cm[1] + cm[2] + cm[3];
-				double acc=(cm[0]+cm[3])/sum;
-				double precision=(cm[0])/(cm[0]+cm[1]);
-				double recall=(cm[0])/(cm[0]+cm[2]);
-				double fMeasure = (2*(precision*recall))/(precision+recall);
+//				MulticlassMetrics metrics = new MulticlassMetrics(predictions.select("prediction", "label"));
+//				double[] cm = metrics.confusionMatrix().toArray();
+//				double sum = cm[0] + cm[1] + cm[2] + cm[3];
+//				double acc=(cm[0]+cm[3])/sum;
+//				double precision=(cm[0])/(cm[0]+cm[1]);
+//				double recall=(cm[0])/(cm[0]+cm[2]);
+//				double fMeasure = (2*(precision*recall))/(precision+recall);
+
+				MulticlassClassificationEvaluator mce = new MulticlassClassificationEvaluator();
+				double acc=mce.setMetricName("accuracy").evaluate(predictions);
+				double precision=mce.setMetricName("weightedPrecision").evaluate(predictions);
+				double recall=mce.setMetricName("weightedRecall").evaluate(predictions);
+				double fMeasure =mce.setMetricName("f1").evaluate(predictions);
 
 
 				Dataset<Row> p_orginal = predictions.select("prediction-original").limit(limit);
@@ -1337,13 +1372,19 @@ public class ApiController {
 				System.out.println("-----<>-----"+model.get("model"));
 				predictions.show();
 
-				MulticlassMetrics metrics = new MulticlassMetrics(predictions.select("prediction", "label"));
-				double[] cm = metrics.confusionMatrix().toArray();
-				double sum = cm[0] + cm[1] + cm[2] + cm[3];
-				double acc=(cm[0]+cm[3])/sum;
-				double precision=(cm[0])/(cm[0]+cm[1]);
-				double recall=(cm[0])/(cm[0]+cm[2]);
-				double fMeasure = (2*(precision*recall))/(precision+recall);
+//				MulticlassMetrics metrics = new MulticlassMetrics(predictions.select("prediction", "label"));
+//				double[] cm = metrics.confusionMatrix().toArray();
+//				double sum = cm[0] + cm[1] + cm[2] + cm[3];
+//				double acc=(cm[0]+cm[3])/sum;
+//				double precision=(cm[0])/(cm[0]+cm[1]);
+//				double recall=(cm[0])/(cm[0]+cm[2]);
+//				double fMeasure = (2*(precision*recall))/(precision+recall);
+
+				MulticlassClassificationEvaluator mce = new MulticlassClassificationEvaluator();
+				double acc=mce.setMetricName("accuracy").evaluate(predictions);
+				double precision=mce.setMetricName("weightedPrecision").evaluate(predictions);
+				double recall=mce.setMetricName("weightedRecall").evaluate(predictions);
+				double fMeasure =mce.setMetricName("f1").evaluate(predictions);
 
 
 				Dataset<Row> p_orginal = predictions.select("prediction-original").limit(limit);
@@ -1416,7 +1457,7 @@ public class ApiController {
 				}
 
 				predictions.show();
-				RegressionMetrics metrics = new RegressionMetrics(predictions.select("label", "prediction"));
+//				RegressionMetrics metrics = new RegressionMetrics(predictions.select("label", "prediction"));
 				System.out.println("-----<>-----"+model.get("model"));
 
 
@@ -1424,13 +1465,26 @@ public class ApiController {
 				Dataset<Row> p_orginal = predictions.select("prediction").limit(limit);
 				JSONObject p_original_json = Utils.convertFrameToJson2Single(p_orginal.collectAsList());
 
+				RegressionEvaluator rce = new RegressionEvaluator().setPredictionCol("prediction").setLabelCol("label");
+				double rmse = rce.setMetricName("rmse").evaluate(predictions);
+				double mae = rce.setMetricName("mae").evaluate(predictions);
+				double mse = rce.setMetricName("mse").evaluate(predictions);
+				double r2 = rce.setMetricName("r2").evaluate(predictions);
 
 				JSONObject temp_res = new JSONObject();
 				temp_res.put("prediction", p_original_json);
-				temp_res.put("mse", df2.format(metrics.meanSquaredError()));
-				temp_res.put("mae", df2.format(metrics.meanAbsoluteError()));
-				temp_res.put("rmse", df2.format(metrics.rootMeanSquaredError()));
-				temp_res.put("r2", df2.format(metrics.r2()));
+//				temp_res.put("mse", df2.format(metrics.meanSquaredError()));
+				temp_res.put("mse", df2.format(mse));
+
+//				temp_res.put("mae", df2.format(metrics.meanAbsoluteError()));
+				temp_res.put("mae", df2.format(mae));
+
+//				temp_res.put("rmse", df2.format(metrics.rootMeanSquaredError()));
+				temp_res.put("rmse", df2.format(rmse));
+
+//				temp_res.put("r2", df2.format(metrics.r2()));
+				temp_res.put("r2", df2.format(r2));
+
 				temp_res.put("hyper_tuning", hyper_tuning);
 				temp_res.put("best_params", "");
 				res.put(model.get("model"), temp_res);
@@ -1493,7 +1547,7 @@ public class ApiController {
 				}
 
 				predictions.show();
-				RegressionMetrics metrics = new RegressionMetrics(predictions.select("label", "prediction"));
+//				RegressionMetrics metrics = new RegressionMetrics(predictions.select("label", "prediction"));
 				System.out.println("-----<>-----"+model.get("model"));
 
 
@@ -1501,13 +1555,26 @@ public class ApiController {
 				Dataset<Row> p_orginal = predictions.select("prediction").limit(limit);
 				JSONObject p_original_json = Utils.convertFrameToJson2Single(p_orginal.collectAsList());
 
+				RegressionEvaluator rce = new RegressionEvaluator().setPredictionCol("prediction").setLabelCol("label");
+				double rmse = rce.setMetricName("rmse").evaluate(predictions);
+				double mae = rce.setMetricName("mae").evaluate(predictions);
+				double mse = rce.setMetricName("mse").evaluate(predictions);
+				double r2 = rce.setMetricName("r2").evaluate(predictions);
 
 				JSONObject temp_res = new JSONObject();
 				temp_res.put("prediction", p_original_json);
-				temp_res.put("mse", df2.format(metrics.meanSquaredError()));
-				temp_res.put("mae", df2.format(metrics.meanAbsoluteError()));
-				temp_res.put("rmse", df2.format(metrics.rootMeanSquaredError()));
-				temp_res.put("r2", df2.format(metrics.r2()));
+//				temp_res.put("mse", df2.format(metrics.meanSquaredError()));
+				temp_res.put("mse", df2.format(mse));
+
+//				temp_res.put("mae", df2.format(metrics.meanAbsoluteError()));
+				temp_res.put("mae", df2.format(mae));
+
+//				temp_res.put("rmse", df2.format(metrics.rootMeanSquaredError()));
+				temp_res.put("rmse", df2.format(rmse));
+
+//				temp_res.put("r2", df2.format(metrics.r2()));
+				temp_res.put("r2", df2.format(r2));
+				
 				temp_res.put("hyper_tuning", hyper_tuning);
 				temp_res.put("best_params", "");
 				res.put(model.get("model"), temp_res);
@@ -1572,7 +1639,7 @@ public class ApiController {
 				}
 
 				predictions.show();
-				RegressionMetrics metrics = new RegressionMetrics(predictions.select("label", "prediction"));
+//				RegressionMetrics metrics = new RegressionMetrics(predictions.select("label", "prediction"));
 				System.out.println("-----<>-----"+model.get("model"));
 
 
@@ -1581,12 +1648,26 @@ public class ApiController {
 				JSONObject p_original_json = Utils.convertFrameToJson2Single(p_orginal.collectAsList());
 
 
+				RegressionEvaluator rce = new RegressionEvaluator().setPredictionCol("prediction").setLabelCol("label");
+				double rmse = rce.setMetricName("rmse").evaluate(predictions);
+				double mae = rce.setMetricName("mae").evaluate(predictions);
+				double mse = rce.setMetricName("mse").evaluate(predictions);
+				double r2 = rce.setMetricName("r2").evaluate(predictions);
+
 				JSONObject temp_res = new JSONObject();
 				temp_res.put("prediction", p_original_json);
-				temp_res.put("mse", df2.format(metrics.meanSquaredError()));
-				temp_res.put("mae", df2.format(metrics.meanAbsoluteError()));
-				temp_res.put("rmse", df2.format(metrics.rootMeanSquaredError()));
-				temp_res.put("r2", df2.format(metrics.r2()));
+//				temp_res.put("mse", df2.format(metrics.meanSquaredError()));
+				temp_res.put("mse", df2.format(mse));
+
+//				temp_res.put("mae", df2.format(metrics.meanAbsoluteError()));
+				temp_res.put("mae", df2.format(mae));
+
+//				temp_res.put("rmse", df2.format(metrics.rootMeanSquaredError()));
+				temp_res.put("rmse", df2.format(rmse));
+
+//				temp_res.put("r2", df2.format(metrics.r2()));
+				temp_res.put("r2", df2.format(r2));
+				
 				temp_res.put("hyper_tuning", hyper_tuning);
 				temp_res.put("best_params", "");
 				res.put(model.get("model"), temp_res);
@@ -1620,10 +1701,18 @@ public class ApiController {
 					kmModel = km.fit(training);
 					predictions = kmModel.transform(testing);
 				}
+				System.out.println("K = " + (int) model.get("k"));
+				predictions.show();
 				KMeansSummary summary = kmModel.summary();
 				long[] clusterSizes = summary.clusterSizes();
 				System.out.println("Cluster Sizes "+clusterSizes);
-				double silhoute_score = ce.evaluate(predictions);
+				
+				double silhoute_score;
+				if(predictions.select("prediction").distinct().count() >= 2)
+					silhoute_score = ce.evaluate(predictions);
+				else
+					silhoute_score = 1;
+					
 				System.out.println("silhoute_score "+silhoute_score);
 				for(Vector v: kmModel.clusterCenters()){
 					System.out.println(v);
@@ -1673,7 +1762,14 @@ public class ApiController {
 				BisectingKMeansSummary summary = bisectingKModel.summary();
 				long[] clusterSizes = summary.clusterSizes();
 				System.out.println("Cluster Sizes "+clusterSizes);
-				double silhoute_score = ce.evaluate(predictions);
+				
+
+				double silhoute_score;
+				if(predictions.select("prediction").distinct().count() >= 2)
+					silhoute_score = ce.evaluate(predictions);
+				else
+					silhoute_score = 1;
+				
 				System.out.println("silhoute_score "+silhoute_score);
 				
 				Dataset<Row> p_orginal = predictions.select("prediction").limit(limit);
