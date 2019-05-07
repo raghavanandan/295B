@@ -108,17 +108,17 @@
     ],
     "K-Means": [
       {
-        "name": "K",
+        "name": "k",
         "defaultValue": "2"
       }
     ],
     "Bisecting K-Means": [
       {
-        "name": "K",
+        "name": "k",
         "defaultValue": "2"
       },
       {
-        "name": "maxIterations",
+        "name": "maxIter",
         "defaultValue": "10"
       },
       {

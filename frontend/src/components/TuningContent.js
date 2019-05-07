@@ -31,7 +31,8 @@ class TuningContent extends Component{
             tuneData: {},
             showResults: false,
             loader: false,
-            bestParams: {}
+            bestParams: {},
+            clusters: ""
         };
 
         // this.updateModels = this.updateModels.bind(this);
@@ -78,7 +79,7 @@ class TuningContent extends Component{
     }
 
     filterModels(e) {
-        let objArray = [];
+        let objArray = [{value: "All", label: "All"}];
 
         this.state.prevHeaders.map((value) => {
             objArray.push({value: value.header, label: value.header});
@@ -112,7 +113,7 @@ class TuningContent extends Component{
             hyper_params[params[index].name] = params[index].defaultValue
         }
 
-        paramValues["model"] = option.value.toLowerCase().split(" ").join("_");
+        paramValues["model"] = option.value.toLowerCase().replace("-","").split(" ").join("_");
         paramValues["hyper_params"] = hyper_params;
         paramValues["kfold"] = 2;
 
@@ -127,8 +128,14 @@ class TuningContent extends Component{
 
     tuneModel() {
         this.setState({loader: true});
-        console.log(this.state.tuneData);
-        API.predictModel({outputCol: this.state.targetColumn.value, data: [this.state.tuneData], model: this.state.group.toLowerCase()    }).then((data) => {
+        // console.log(this.state.tuneData);
+        let targetColumn = "";
+        if (this.state.group !== "Clustering") {
+            targetColumn = this.state.targetColumn.value;
+        } else {
+            targetColumn = "";
+        }
+        API.predictModel({outputCol: targetColumn, data: [this.state.tuneData], model: this.state.group.toLowerCase()}).then((data) => {
             if (data !== 400) {
                 let category = [];
                 let fMeasureValues = [];
@@ -142,6 +149,7 @@ class TuningContent extends Component{
                 let rmseValues = [];
                 let r2Values = [];
                 let chartDataSet = [];
+                let sil_values = [];
                 let key = Object.keys(data).sort();
                 let props = Object.keys(data[key]);
 
@@ -177,8 +185,19 @@ class TuningContent extends Component{
                             "seriesname": "Best " + this.state.metric.value + " Training",
                             "data": metric_training
                         }
-                    ]
+                    ];
+                    metric_testing.push({"value": data[key]["hyper_tuning"]["best_metric_testing"]});
+                    metric_training.push({"value": data[key]["hyper_tuning"]["best_metric_training"]});
 
+                } else if (this.state.group === "Clustering") {
+                    this.setState({clusters: data[key]["clusterSizes"].join(",")});
+                    sil_values.push({"value": data[key]["silhoute_score"]});
+                    chartDataSet = [
+                        {
+                            "seriesname": "silhouette score",
+                            "data": sil_values
+                        }
+                    ]
                 } else {
                     fMeasureValues.push({"value": data[key]["fMeasure"]});
                     accuracyValues.push({"value": data[key]["accuracy"]});
@@ -209,12 +228,13 @@ class TuningContent extends Component{
                             "seriesname": "Best " + this.state.metric.value + " Training",
                             "data": metric_training
                         }
-                    ]
+                    ];
+
+                    metric_testing.push({"value": data[key]["hyper_tuning"]["best_metric_testing"]});
+                    metric_training.push({"value": data[key]["hyper_tuning"]["best_metric_training"]});
                 }
 
                 category.push({"label": key[0]});
-                metric_testing.push({"value": data[key]["hyper_tuning"]["best_metric_testing"]});
-                metric_training.push({"value": data[key]["hyper_tuning"]["best_metric_training"]});
 
                 const chartData = {
                     type: 'mscolumn2d',
@@ -458,16 +478,27 @@ class TuningContent extends Component{
                             </div>
                             <div className={"col-md-12 no-pad form-group"}>
                                 <label className={"col-md-12 no-pad"}>Metric</label>
-                                <div className={"col-md-12 no-pad"}>
-                                    <Select
-                                        className={"col-md-8 no-pad"}
-                                        value={this.state.metric}
-                                        onChange={this.updateMetric}
-                                        options={(this.state.group !== "Regression" ? metricOptions : regressionMetrics)}
-                                        isSearchable
-                                        name={"metric"}
-                                    />
-                                </div>
+                                    {this.state.group === "Clustering" ?
+                                        <div className={"col-md-8 no-pad"}>
+                                            <input
+                                                type={"text"}
+                                                value={"Silhouette Score"}
+                                                disabled={true}
+                                                className={"col-md-8 form-control"}
+                                            />
+                                        </div>:
+                                        <div className={"col-md-12 no-pad"}>
+                                            <Select
+                                                className={"col-md-8 no-pad"}
+                                                value={this.state.metric}
+                                                onChange={this.updateMetric}
+                                                options={(this.state.group !== "Regression" ? metricOptions : regressionMetrics)}
+                                                isSearchable
+                                                name={"metric"}
+                                            />
+                                        </div>
+                                    }
+
                             </div>
                             <div className={"col-md-12 form-group no-pad medium-top-pad"}>
                                 <div className={"col-md-12 no-pad medium-bottom-pad"}><strong>Hyper Parameters</strong></div>
@@ -541,6 +572,12 @@ class TuningContent extends Component{
                                     }
                                 </div>
                             </div>
+                            {this.state.clusters ?
+                                <div className={"col-md-12 no-pad"}>
+                                    <label className={"col-md-3"}>Cluster Sizes</label>
+                                    <span className={"col-md-3 no-pad"}>{this.state.clusters}</span>
+                                </div> : null
+                            }
                             <div className={"col-md-12 text-center no-pad top-pad"}>
                                 <ReactFC {...this.state.chartData}/>
                             </div>

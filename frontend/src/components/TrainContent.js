@@ -210,7 +210,7 @@ class TrainContent extends Component {
         if (this.state.group === "Clustering") {
             this.state.filterModels.map((model, index) => {
                 predictData.push({
-                    "model": model.value.replace("-","").toLowerCase(),
+                    "model": model.value.replace("-","").toLowerCase().split(" ").join("_"),
                     "k": parseInt(this.state.cluster[model.value.replace("-","").toLowerCase()])
                 })
             });
@@ -244,7 +244,12 @@ class TrainContent extends Component {
                         let headers = this.state.headers;
                         for (let key in obj) {
                             for (let index in keys) {
-                                let new_key = this.state.targetColumn.value + '_' + keys[index];
+                                let new_key = "";
+                                if (this.state.group === "Clustering") {
+                                    new_key = "cluster";
+                                } else {
+                                    new_key = this.state.targetColumn.value + '_' + keys[index];
+                                }
                                 if (!arr.includes(new_key)) {
                                     arr.push(new_key);
                                     headers.push({header: new_key});
@@ -265,6 +270,7 @@ class TrainContent extends Component {
                         let r2Values = [];
                         let chartDataSet = [];
                         let roc_data = [];
+                        let sil_values = [];
                         let model_keys = Object.keys(data).sort();
 
                         for (let key in model_keys) {
@@ -309,6 +315,14 @@ class TrainContent extends Component {
                                     {
                                         "seriesname": "r2",
                                         "data": r2Values
+                                    }
+                                ]
+                            } else if (this.state.group === "Clustering") {
+                                sil_values.push({"value": data[model_keys[key]]["silhoute_score"]});
+                                chartDataSet = [
+                                    {
+                                        "seriesname": "silhouette score",
+                                        "data": sil_values
                                     }
                                 ]
                             } else {
