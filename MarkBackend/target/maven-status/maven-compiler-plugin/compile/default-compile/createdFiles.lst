@@ -16,6 +16,7 @@ com/mark/pojo/FramePojo.class
 com/mark/pojo/GBT.class
 com/mark/controller/ApplicationConfig.class
 com/mark/pojo/MissingData.class
+com/mark/pojo/BisectingKMPojo.class
 com/mark/pojo/LinearR.class
 com/mark/pojo/RF.class
 com/mark/pojo/ModelRun.class

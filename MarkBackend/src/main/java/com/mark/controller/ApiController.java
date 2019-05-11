@@ -1998,6 +1998,8 @@ public class ApiController {
 		List<Row> pdf = p.select(p.col("prediction-original")).collectAsList();
 		
 		JSONObject res = Utils.convertFrameToJson2Single(pdf);
+		res.put("label", (String)savedModelInfo.get("label"));
+		
 		
 		return new ResponseEntity<>(res, HttpStatus.OK);
 	}
