@@ -274,3 +274,43 @@ export const updateMissing = (data) => {
         return 400;
     })
 };
+
+export const saveModel = (data) => {
+    return fetch(`${url}/save-model`, {
+        method: 'POST',
+        headers: new Headers({
+            'Content-Type': 'application/json'
+        }),
+        body: JSON.stringify(data)
+    }).then((res) => {
+        if (res.status !== 200) {
+            throw Error(res.statusText);
+        } else {
+            return res.json();
+        }
+    }).then((resJSON) => {
+        return resJSON;
+    }).catch(() => {
+        return 400;
+    })
+};
+
+export const predictWebService = (data, id) => {
+    return fetch(`${url}/webservice-predict/?key=${id}`, {
+        method: 'POST',
+        headers: new Headers({
+            'Content-Type': 'application/json'
+        }),
+        body: JSON.stringify(data)
+    }).then((res) => {
+        if (res.status !== 200) {
+            throw Error(res.statusText);
+        } else {
+            return res.json();
+        }
+    }).then((resJSON) => {
+        return resJSON;
+    }).catch(() => {
+        return 400;
+    })
+};

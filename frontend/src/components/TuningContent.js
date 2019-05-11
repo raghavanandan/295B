@@ -32,7 +32,8 @@ class TuningContent extends Component{
             showResults: false,
             loader: false,
             bestParams: {},
-            clusters: ""
+            clusters: "",
+            saveLoader: false
         };
 
         // this.updateModels = this.updateModels.bind(this);
@@ -42,6 +43,7 @@ class TuningContent extends Component{
         this.updateMetric = this.updateMetric.bind(this);
         this.updateModelParams = this.updateModelParams.bind(this);
         this.tuneModel = this.tuneModel.bind(this);
+        this.saveModel = this.saveModel.bind(this);
     }
 
     componentDidMount() {
@@ -61,13 +63,52 @@ class TuningContent extends Component{
     //     this.setState({model: option, tuneData: {...initialTuneData, "model": option.value.toLowerCase().split(" ").join("_")}});
     // }
 
+    saveModel() {
+        // console.log(this.state.model);
+        // console.log(this.state.inputColumns);
+        // console.log(this.state.targetColumn);
+        this.setState({saveLoader: true});
+        let featureCol = [];
+        let colTypes = [];
+        if (this.state.inputColumns.length === 1 && this.state.inputColumns[0].value === "All" ) {
+            this.state.prevHeaders.forEach((element) => {
+                featureCol.push(element.header);
+                colTypes.push(element.type);
+            })
+        } else {
+            this.state.inputColumns.forEach((element) => {
+                featureCol.push(element.value);
+                colTypes.push(element.type);
+            });
+        }
+
+        let saveData = {
+            model: this.state.model.value.toLowerCase().split(" ").join("_"),
+            featureCol: featureCol,
+            colType: colTypes,
+            label: this.state.targetColumn.value
+        };
+
+        console.log(saveData);
+
+        API.saveModel(saveData).then((data) => {
+            if (data !== 400) {
+                console.log(data);
+                localStorage.setItem("apiId", data.docId);
+                this.setState({saveLoader: false});
+            }
+        }).catch((err) => {
+            console.log(err);
+        })
+    }
+
     updateFeatureColumns(option) {
         let objArray = [{value: "All", label: "All"}];
 
         if (this.state.prevHeaders.length) {
             this.state.prevHeaders.map((value) => {
                 if (value.header !== option.value) {
-                    objArray.push({value: value.header, label: value.header});
+                    objArray.push({value: value.header, label: value.header, type: value.type});
                 }
             });
         }
@@ -82,7 +123,7 @@ class TuningContent extends Component{
         let objArray = [{value: "All", label: "All"}];
 
         this.state.prevHeaders.map((value) => {
-            objArray.push({value: value.header, label: value.header});
+            objArray.push({value: value.header, label: value.header, type: value.type});
         });
         this.setState({group: e.target.value, model: null, otherOptions: objArray});
     }
@@ -580,6 +621,16 @@ class TuningContent extends Component{
                             }
                             <div className={"col-md-12 text-center no-pad top-pad"}>
                                 <ReactFC {...this.state.chartData}/>
+                            </div>
+                            <div className={"col-md-12 top-pad"}>
+                                <button
+                                    className={"action-btn"}
+                                    type={"button"}
+                                    onClick={this.saveModel}
+                                >
+                                    Save Model
+                                </button>
+                                {this.state.saveLoader ? <Loader/> : null}
                             </div>
                         </>: null
                     }

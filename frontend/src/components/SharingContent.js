@@ -1,4 +1,5 @@
 import React, {Component} from 'react';
+import {Loader} from "./Loader";
 import * as API from "../api/API";
 
 class SharingContent extends Component{
@@ -11,19 +12,47 @@ class SharingContent extends Component{
             headers: [],
             randomfile: {},
             showPrediction: false,
+            apiID: "",
+            showLoader: false,
+            predData: [],
+            label: ""
         };
 
         this.shuffleFile = this.shuffleFile.bind(this);
+        this.changeValues = this.changeValues.bind(this);
+        this.predictData = this.predictData.bind(this);
     }
 
     shuffleFile() {
         let random = Math.round(Math.random() * (this.state.file.length - 1));
         this.setState({
             randomFile: this.state.file[random]
+        }, () => console.log(this.state.randomFile));
+    }
+
+    changeValues(e, header) {
+        let prev = this.state.randomFile;
+        prev[header] = e.target.value;
+        this.setState({randomFile: prev});
+    }
+
+    predictData() {
+        this.setState({showLoader: true});
+        let id = atob(this.state.apiID);
+
+        API.predictWebService([this.state.randomFile], id).then((data) => {
+            if (data !== 400) {
+                console.log(data);
+                this.setState({predData: data.docs, label: data.label, showLoader: false});
+            }
+        }).catch((err) => {
+            console.log(err);
         })
     }
 
     componentDidMount() {
+        let id = btoa(localStorage.getItem("apiId"));
+        this.setState({apiID: id});
         API.getFrame(this.state.expId).then((data) => {
             if (data !== 400) {
                 let random = Math.round(Math.random() * (data.docs.length - 1));
@@ -65,7 +94,7 @@ class SharingContent extends Component{
                     </div>
                     <div className={"col-md-12 medium-top-pad"}>
                         <div className={"col-md-5 no-pad"}>
-                            <input className={"form-control"} type={"text"} value={"MTQ1MjYzNjYzcHQxNDUyNjM2NjNwdDE0NTI2MzY2M3B0MTQ1MjYzNjYzcHQ="} disabled={true} />
+                            <input className={"form-control"} type={"text"} value={this.state.apiID ? this.state.apiID : ""} disabled={true} />
                         </div>
                     </div>
                     <div className={"col-md-12 top-pad"}>
@@ -112,27 +141,48 @@ class SharingContent extends Component{
                                     <div className={"col-md-12 no-pad form-group"} key={index}>
                                         <label className={"col-md-5 no-pad"}>{value.header}</label>
                                         <div className={"col-md-6 no-pad"}>
-                                            <input className={"input-sm form-control"} value={this.state.randomFile[value.header]} />
+                                            <input
+                                                className={"input-sm form-control"}
+                                                value={this.state.randomFile[value.header]}
+                                                onChange={(e) => this.changeValues(e, value.header)}
+                                            />
                                         </div>
                                     </div>
                                 ))}
                             </div> : null
                         }
                         <div className={"col-md-12 top-pad"}>
-                            <button className={"action-btn"} onClick={() => this.setState({showPrediction: true})}>Predict</button>
+                            <button className={"action-btn"} onClick={this.predictData}>Predict</button>
                         </div>
                     </div>
-                    {this.state.showPrediction ?
-                        <div className={"col-md-6 second-half-div"}>
-                            <div className={"col-md-12 top-pad"}>
-                                <span className={"custom-h2-header"}>Prediction Results</span>
-                            </div>
-                            <div className={"col-md-12 top-pad"}>
-                                <label className={"col-md-5 no-pad"}>Income</label>
-                                <span className={"col-md-6 no-pad"}>{this.state.randomFile.income}</span>
-                            </div>
-                        </div> : null
-                    }
+                    <div className={"col-md-6 second-half-div"}>
+                        {this.state.showLoader ? <Loader/> : null}
+                        {this.state.predData.length > 0 ?
+                            <>
+                                <div className={"col-md-12 top-pad"}>
+                                    <span className={"custom-h2-header"}>Prediction Results</span>
+                                </div>
+                                <div className={"col-md-12 top-pad"}>
+                                    <table className={"table text-center"}>
+                                        <thead>
+                                            <tr>
+                                                <th className={"text-center"}>{this.state.label}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {this.state.predData.map((value, index) => (
+                                                <tr key={index}>
+                                                    <td>{value}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </> : null
+                        }
+
+                    </div>
+
                 </div>
             )
         }
