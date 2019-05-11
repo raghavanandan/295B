@@ -1815,11 +1815,12 @@ public class ApiController {
 	public ResponseEntity<Response> saveModel(@RequestBody SaveModel saveModel){
 		String k = Utils.getRandomKey();
 		String path = "savedModel/"+k;
-		String id = mongo.saveModel(saveModel,path);
+		String path_pipe = "savedModel/"+Utils.getRandomKey();
+		String id = mongo.saveModel(saveModel,path,path_pipe);
 		LogisticRegressionModel lr = (LogisticRegressionModel)current_model;
 		
 		try {
-			pipelineModel.save("savedModel/123");
+			pipelineModel.save(path_pipe);
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -1828,7 +1829,7 @@ public class ApiController {
 		}
 		
 		try {
-			lr.write().overwrite().save("savedModel/"+k);
+			lr.write().overwrite().save(path);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1958,7 +1959,9 @@ public class ApiController {
 
 //		PipelineModel pipelineModelTemp = partialPipeline.fit(f_df);
 		
-		PipelineModel pipelineModelTemp = PipelineModel.load("savedModel/123");
+		String pipePath = (String) savedModelInfo.get("pipePath");
+		
+		PipelineModel pipelineModelTemp = PipelineModel.load(pipePath);
 
 		Transformer[] transformers = pipelineModelTemp.stages();
 		

@@ -127,11 +127,12 @@ public class Mongo {
 	}
 	
 	
-	public  String saveModel(SaveModel saveModel, String path) {
+	public  String saveModel(SaveModel saveModel, String path, String pipePath) {
 		MongoDatabase db = mc.getDatabase("mark");
 		MongoCollection<Document> col = db.getCollection("saveModel");
 		Document doc = Document.parse(new Gson().toJson(saveModel).toString());
 		doc.append("path", path);
+		doc.append("pipePath", pipePath);
 		col.insertOne(doc);
 		return doc.getObjectId("_id").toString();
 	}
@@ -153,12 +154,13 @@ public class Mongo {
 			obj.put("colType", doc.get("colType"));
 			obj.put("label", doc.get("label"));
 			obj.put("path", doc.get("path"));
+			obj.put("pipePath", doc.get("pipePath"));
 			break;
 		}
 		return obj;
 		
 
 	}
-	
+
 
 }
