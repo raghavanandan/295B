@@ -8,6 +8,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.spark.api.java.JavaSparkContext;
@@ -53,6 +54,7 @@ import org.apache.spark.ml.tuning.CrossValidatorModel;
 import org.apache.spark.ml.tuning.ParamGridBuilder;
 import org.apache.spark.mllib.evaluation.MulticlassMetrics;
 import org.apache.spark.mllib.evaluation.RegressionMetrics;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -74,6 +76,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.gson.Gson;
 import com.mark.pojo.BisectingKMPojo;
 import com.mark.pojo.DT;
 import com.mark.pojo.FramePojo;
@@ -85,6 +88,7 @@ import com.mark.pojo.ModelSelection;
 import com.mark.pojo.NB;
 import com.mark.pojo.RF;
 import com.mark.pojo.Response;
+import com.mark.pojo.SaveModel;
 import com.mark.pojo.StringParser;
 import com.mark.storage.Mongo;
 import com.mark.utils.FileParser;
@@ -129,6 +133,9 @@ public class ApiController {
 	private static Map<String, Map<FramePojo,Dataset<Row>>> masterFrames = new HashMap<>();
 
 	private static String master_frame_id;
+	
+	private static Object current_model;
+	
 
 	@RequestMapping(value = "upload-file", method = RequestMethod.POST, produces =MediaType.APPLICATION_JSON_VALUE )
 	public ResponseEntity<Response> uploadFile(@RequestParam("file") MultipartFile file,@RequestParam("name") String name, @RequestParam("description") String description, @RequestParam("header") String header){
@@ -638,6 +645,9 @@ public class ApiController {
 
 
 	private static Dataset<Row> prepareClassficationModel(ModelSelection modelSelection) {
+		
+		String dummyValType ="";
+		Object dummyVal = null;
 
 		StringIndexer tr = new StringIndexer().setInputCol(modelSelection.getOutputCol()).setOutputCol("label");
 
@@ -670,6 +680,7 @@ public class ApiController {
 
 			f_df = currentDf.selectExpr(exp);
 		}
+		
 
 
 		for(Tuple2<String, String> tup: f_df.dtypes()){
@@ -734,9 +745,16 @@ public class ApiController {
 		Pipeline partialPipeline = new Pipeline().setStages(stages.toArray(new PipelineStage[0]));
 
 		pipelineModel = partialPipeline.fit(f_df);
+		
 
 		Dataset<Row> preppedDataDF = pipelineModel.transform(f_df);
 
+//		StringIndexer tr = new StringIndexer().setInputCol(modelSelection.getOutputCol()).setOutputCol("label");
+//
+//		StringIndexerModel trModel = tr.fit(preppedDataDF);
+//		
+//		preppedDataDF = trModel.transform(preppedDataDF);
+		
 		System.out.println(modelSelection.getTestSplit()/100.0);
 
 		System.out.println(modelSelection.getTrainSplit()/100.0);
@@ -1003,10 +1021,12 @@ public class ApiController {
 					hyper_tuning.put("best_metric_training", best_metric_training);
 					hyper_tuning.put("best_metric_testing", best_metric_testing);
 					hyper_tuning.put("metric", mce.getMetricName());
+					current_model = cvm.bestModel();
 				}
 				else {
 					lrModel = new LogisticRegression().fit(training);
 					predictions = lrModel.transform(testing);
+					current_model = lrModel;
 				}
 
 
@@ -1789,6 +1809,196 @@ public class ApiController {
 		return new ResponseEntity<>(res, HttpStatus.OK);
 
 	}
+	
+	
+	@RequestMapping(value="save-model")
+	public ResponseEntity<Response> saveModel(@RequestBody SaveModel saveModel){
+		String k = Utils.getRandomKey();
+		String path = "savedModel/"+k;
+		String id = mongo.saveModel(saveModel,path);
+		LogisticRegressionModel lr = (LogisticRegressionModel)current_model;
+		
+		try {
+			pipelineModel.save("savedModel/123");
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			Response res = new Response(false, "", "");
+			return new ResponseEntity<>(res, HttpStatus.OK);
+		}
+		
+		try {
+			lr.write().overwrite().save("savedModel/"+k);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			Response res = new Response(false, "", "");
+			return new ResponseEntity<>(res, HttpStatus.OK);
+		}
+		Response res = new Response(true, "", id);
+		return new ResponseEntity<>(res, HttpStatus.OK);
+	}
+	
+	@RequestMapping(value="webservice-predict")
+	public ResponseEntity<Response> saveModel(@RequestBody List<Map<String, String>> modelJson, @RequestParam("key") String key){
+		
+		JavaSparkContext sc = JavaSparkContext.fromSparkContext(sparkSession.sparkContext());
+		
+		JSONObject savedModelInfo = mongo.getModel(key);
+		
+		List<String> f_cols = (List<String>) savedModelInfo.get("featureCol");
+		List<String> f_col_type = (List<String>) savedModelInfo.get("colType");
+		
+		Map<String, String> types = new HashMap<>();
+		
+		int c = 0;
+		for (String s : f_cols) {
+			types.put(s, f_col_type.get(c));
+			++c;
+		}
+		
+		JSONArray jsn = new JSONArray();
+		
+		
+		Set<String> features = modelJson.get(0).keySet();
+		
+		for(Map<String, String> m : modelJson) {
+			
+			JSONObject obj = new JSONObject();
+			
+			for (Map.Entry<String, String> entry : m.entrySet()) {
+				
+				String t = types.get(entry.getKey());
+				
+				if (t.equalsIgnoreCase("LongType")) {
+					obj.put(entry.getKey(), Long.valueOf(entry.getValue()));
+				}
+				else if (t.equalsIgnoreCase("DoubleType")) {
+					obj.put(entry.getKey(), Double.valueOf(entry.getValue()));
+				}
+				else {
+					obj.put(entry.getKey(), entry.getValue());
+				}
+			}
+			jsn.add(obj);
+		}
+		
+		System.out.println("added json fetch");
+		
+		String f = Utils.getRandomKey();
+		
+		try (FileWriter file = new FileWriter("/tmp/"+f)) {
+			file.write(jsn.toJSONString());
+			System.out.println("Successfully Copied JSON Object to File...");
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("appid 1->"+sc.sc().applicationId());
+		Dataset<Row> df = sparkSession.read().json("/tmp/"+f);
+		df.show();
+		
+		
+		String outputCol = (String) savedModelInfo.get("label");
+		
+//		StringIndexer tr = new StringIndexer().setInputCol(outputCol).setOutputCol("label");
+
+//		ArrayList<PipelineStage> stages = new ArrayList<>();
+//
+////		stages.add(tr);
+//
+//		List<String> categorical = new ArrayList<>();
+//
+//		List<String> numerical = new ArrayList<>();
+//
+//		Dataset<Row> f_df = df;
+//
+//
+//		for(Tuple2<String, String> tup: f_df.dtypes()){
+//			if(tup._1.equals(outputCol)) {
+//				continue;
+//			}
+//
+//			if(tup._2 == "StringType") {
+//				categorical.add(tup._1);
+//			}
+//			else {
+//				numerical.add(tup._1);
+//				f_df = f_df.withColumn("_" + tup._1 , f_df.col(tup._1).cast(DataTypes.DoubleType)).drop(tup._1).withColumnRenamed("_" + tup._1, tup._1);
+//			}
+//
+//		}
+//		
+//		List<String> newCat = new ArrayList<>();
+//		for(String str: categorical){
+//
+//			StringIndexer strIndexer = new StringIndexer().setInputCol(str).setOutputCol(str + "Index");
+//			OneHotEncoder encoder = new OneHotEncoder().setInputCol(strIndexer.getOutputCol()).setOutputCol(str + "classVec");
+//
+//			stages.add(strIndexer);
+//			if (f_df.select(str).distinct().count() < 2) {
+//				newCat.add(str+"Index");
+//				continue;
+//			}
+//			else {
+//				newCat.add(str+"classVec");
+//			}
+//			stages.add(encoder);
+//		}
+//		
+//		List<String> assemblerInputs = new ArrayList<>(numerical);
+//		for(String str: newCat) {
+//			assemblerInputs.add(str);
+//		}
+//		VectorAssembler assembler = new VectorAssembler().setInputCols(assemblerInputs.toArray(new String[0])).setOutputCol("features");
+//		stages.add(assembler);
+//
+//		Pipeline partialPipeline = new Pipeline().setStages(stages.toArray(new PipelineStage[0]));
+
+//		PipelineModel pipelineModelTemp = partialPipeline.fit(f_df);
+		
+		PipelineModel pipelineModelTemp = PipelineModel.load("savedModel/123");
+
+		Transformer[] transformers = pipelineModelTemp.stages();
+		
+		Transformer[] newTransformers = new Transformer[transformers.length - 1];
+		
+		for(int i = 1; i < transformers.length; ++i)
+			newTransformers[i - 1] = transformers[i];
+		
+		PipelineModel newPipelineModel = new PipelineModel("1", newTransformers);
+				
+		Dataset<Row> preppedDataDF = newPipelineModel.transform(df);
+		
+		System.out.println("preppped data df");
+		preppedDataDF.show();
+		
+		JSONArray types_utils = Utils.getTypes(preppedDataDF.dtypes());
+		System.out.println("typesutils "+types_utils);
+		
+		String path = (String) savedModelInfo.get("path");
+		
+		System.out.println("path "+path);
+		
+		LogisticRegressionModel savedModel = LogisticRegressionModel.load(path);
+		Dataset<Row> p = savedModel.transform(preppedDataDF);
+		
+		
+		StringIndexerModel temp = (StringIndexerModel)transformers[0];
+
+		IndexToString trs = new IndexToString().setLabels(temp.labels()).setInputCol("prediction").setOutputCol("prediction-original");
+		p = trs.transform(p);
+		
+		p.show();
+		return null;
+	}
+	
+	
+	
+	
+	
+	
 
 
 

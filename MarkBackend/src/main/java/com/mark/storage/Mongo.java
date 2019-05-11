@@ -13,6 +13,8 @@ import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.google.gson.Gson;
+import com.mark.pojo.SaveModel;
 import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -123,6 +125,40 @@ public class Mongo {
 		col.insertOne(doc);
 		return doc.getObjectId("_id").toString();
 	}
+	
+	
+	public  String saveModel(SaveModel saveModel, String path) {
+		MongoDatabase db = mc.getDatabase("mark");
+		MongoCollection<Document> col = db.getCollection("saveModel");
+		Document doc = Document.parse(new Gson().toJson(saveModel).toString());
+		doc.append("path", path);
+		col.insertOne(doc);
+		return doc.getObjectId("_id").toString();
+	}
+	
+	
+	public JSONObject getModel(String docId) {
+		MongoDatabase db = mc.getDatabase("mark");
+		MongoCollection<Document> modelCol = db.getCollection("saveModel");
+		ObjectId oid = new ObjectId(docId);
+		Bson bsonFilter = Filters.eq("_id",oid);
+		FindIterable<Document> modelData = modelCol.find(bsonFilter).projection(Projections.excludeId());
+		
+		
+		JSONObject obj = new JSONObject();
+		for(Document doc : modelData) {
+//			System.out.println("inside loop "+doc.getString("country"));
+			obj.put("model", doc.get("model"));
+			obj.put("featureCol", doc.get("featureCol"));
+			obj.put("colType", doc.get("colType"));
+			obj.put("label", doc.get("label"));
+			obj.put("path", doc.get("path"));
+			break;
+		}
+		return obj;
+		
 
+	}
+	
 
 }
