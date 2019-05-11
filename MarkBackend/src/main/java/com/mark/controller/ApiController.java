@@ -1841,7 +1841,7 @@ public class ApiController {
 	}
 	
 	@RequestMapping(value="webservice-predict")
-	public ResponseEntity<Response> saveModel(@RequestBody List<Map<String, String>> modelJson, @RequestParam("key") String key){
+	public ResponseEntity<JSONObject> saveModel(@RequestBody List<Map<String, String>> modelJson, @RequestParam("key") String key){
 		
 		JavaSparkContext sc = JavaSparkContext.fromSparkContext(sparkSession.sparkContext());
 		
@@ -1994,7 +1994,12 @@ public class ApiController {
 		p = trs.transform(p);
 		
 		p.show();
-		return null;
+		
+		List<Row> pdf = p.select(p.col("prediction-original")).collectAsList();
+		
+		JSONObject res = Utils.convertFrameToJson2Single(pdf);
+		
+		return new ResponseEntity<>(res, HttpStatus.OK);
 	}
 	
 	
