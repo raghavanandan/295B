@@ -1814,8 +1814,8 @@ public class ApiController {
 	@RequestMapping(value="save-model")
 	public ResponseEntity<Response> saveModel(@RequestBody SaveModel saveModel){
 		String k = Utils.getRandomKey();
-		String path = "savedModel/"+k;
-		String path_pipe = "savedModel/"+Utils.getRandomKey();
+		String path = "savedModel/"+"model/"+k;
+		String path_pipe = "savedModel/"+"pipe/"+Utils.getRandomKey();
 		String id = mongo.saveModel(saveModel,path,path_pipe);
 		LogisticRegressionModel lr = (LogisticRegressionModel)current_model;
 		
